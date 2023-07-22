@@ -1,0 +1,12 @@
+version: "3.8"
+services:
+  db:
+    container_name: postgres-order-service
+    image: postgres
+    restart: always
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: order-service
+    ports:
+      - "5432:5432"
