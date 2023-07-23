@@ -5,7 +5,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.reactive.function.client.WebClient;
-import pl.pomoku.orderservice.dto.OrderLineItemsDto;
 import pl.pomoku.orderservice.dto.OrderRequest;
 import pl.pomoku.orderservice.dto.response.InventoryResponse;
 import pl.pomoku.orderservice.entity.Order;
@@ -13,7 +12,6 @@ import pl.pomoku.orderservice.entity.OrderLineItems;
 import pl.pomoku.orderservice.mapper.OrderLineItemsMapper;
 import pl.pomoku.orderservice.repository.OrderRepository;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
@@ -25,7 +23,7 @@ import java.util.stream.Collectors;
 @Slf4j
 public class OrderService {
     private final OrderRepository repository;
-    private final WebClient webClient;
+    private final WebClient.Builder webClientBuilder;
     private final OrderLineItemsMapper orderLineItemsMapper = OrderLineItemsMapper.INSTANCE;
 
     public void placeOrder(OrderRequest request) {
@@ -38,14 +36,6 @@ public class OrderService {
         order.setOrderLineItemsList(orderLineItemsList);
 
         List<String> skuCodes = orderLineItemsList.stream().map(OrderLineItems::getSkuCode).toList();
-
-        //Synchronous Communication
-        //Call inventory service, and place order if product is in stock
-
-        //  POST http://127.0.0.1:8082/api/inventory
-        //  Order Service --- HTTP Request ---- >> Inventory Service (8082)
-        //                << --- Response -----
-
         InventoryResponse[] inventoryResponsesArray = callInventoryService(skuCodes);
 
         if (inventoryResponsesArray == null) throw new NullPointerException("Response is null");
@@ -56,8 +46,8 @@ public class OrderService {
     }
 
     private InventoryResponse[] callInventoryService(List<String> skuCodes) {
-        return webClient.get().uri(
-                        "http://localhost:8082/api/inventory",
+        return webClientBuilder.build().get().uri(
+                        "http://inventory-service/api/inventory",
                         uriBuilder -> uriBuilder.queryParam("skuCode", skuCodes).build()
                 ).retrieve()
                 .bodyToMono(InventoryResponse[].class)
