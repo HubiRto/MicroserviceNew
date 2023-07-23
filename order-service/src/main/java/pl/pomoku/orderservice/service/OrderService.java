@@ -27,6 +27,7 @@ public class OrderService {
     private final OrderRepository repository;
     private final WebClient webClient;
     private final OrderLineItemsMapper orderLineItemsMapper = OrderLineItemsMapper.INSTANCE;
+
     public void placeOrder(OrderRequest request) {
         Order order = new Order();
         order.setOrderNumber(UUID.randomUUID().toString());
@@ -41,18 +42,25 @@ public class OrderService {
         //Synchronous Communication
         //Call inventory service, and place order if product is in stock
 
-        InventoryResponse[] inventoryResponsesArray = webClient.get().uri(
-                        "http://localhost:8082/api/inventory",
-                        uriBuilder -> uriBuilder.queryParam("skuCode", skuCodes).build()
-                )
-                .retrieve()
-                .bodyToMono(InventoryResponse[].class)
-                .block();
+        //  POST http://127.0.0.1:8082/api/inventory
+        //  Order Service --- HTTP Request ---- >> Inventory Service (8082)
+        //                << --- Response -----
+
+        InventoryResponse[] inventoryResponsesArray = callInventoryService(skuCodes);
 
         if (inventoryResponsesArray == null) throw new NullPointerException("Response is null");
         boolean allProductsInStock = Arrays.stream(inventoryResponsesArray).allMatch(InventoryResponse::isInStock);
 
         if (!allProductsInStock) throw new IllegalArgumentException("Product is not in stock, please try again later.");
         repository.save(order);
+    }
+
+    private InventoryResponse[] callInventoryService(List<String> skuCodes) {
+        return webClient.get().uri(
+                        "http://localhost:8082/api/inventory",
+                        uriBuilder -> uriBuilder.queryParam("skuCode", skuCodes).build()
+                ).retrieve()
+                .bodyToMono(InventoryResponse[].class)
+                .block();
     }
 }
