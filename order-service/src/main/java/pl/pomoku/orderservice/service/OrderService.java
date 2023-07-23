@@ -26,7 +26,7 @@ public class OrderService {
     private final WebClient.Builder webClientBuilder;
     private final OrderLineItemsMapper orderLineItemsMapper = OrderLineItemsMapper.INSTANCE;
 
-    public void placeOrder(OrderRequest request) {
+    public String placeOrder(OrderRequest request) {
         Order order = new Order();
         order.setOrderNumber(UUID.randomUUID().toString());
 
@@ -43,6 +43,7 @@ public class OrderService {
 
         if (!allProductsInStock) throw new IllegalArgumentException("Product is not in stock, please try again later.");
         repository.save(order);
+        return "Order Placed Successfully.";
     }
 
     private InventoryResponse[] callInventoryService(List<String> skuCodes) {
